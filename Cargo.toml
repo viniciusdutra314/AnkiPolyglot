@@ -1,0 +1,8 @@
+[package]
+name = "anki-multilang-tts-template"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+genanki-rs = "0.4.0"
+rand = "0.10.2"

@@ -1,0 +1,19 @@
+<span id="phrase"></span>
+
+<script>
+  var word = "{{text:❓ New word (target_lang)}}";
+  var phrase="{{text:🔤 Text (target_lang)}}";
+  var index=phrase.toLowerCase().search(word.toLowerCase());
+  if (index!=-1){
+    var displayed_phrase=phrase.slice(0,index);
+    displayed_phrase+=`<span style='color: highlight_color;'><strong>`;
+      displayed_phrase+=phrase.slice(index,index+word.length);
+    displayed_phrase+="</strong></span>";
+    displayed_phrase+=phrase.slice(word.length+index,)}
+  else {  
+  		displayed_phrase=phrase+"(word not found in phrase)";}
+  document.getElementById("phrase").innerHTML=displayed_phrase
+
+</script>
+
+{{tts target_lang voices=your_voices:🔤 Text (target_lang)}}

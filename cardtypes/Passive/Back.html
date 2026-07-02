@@ -1,0 +1,25 @@
+{{FrontSide}}
+
+<hr id="answer">
+
+{{#❓ New word (target_lang)}}
+<a href="dictionary_link{{text:❓ New word (target_lang)}}">🔎</a>
+
+<span style="color: highlight_color;"> <strong>{{text:❓ New word (target_lang)}}</strong> </span>
+{{/❓ New word (target_lang)}} 
+
+{{^❓ New word (target_lang)}}
+<a href="dictionary_link{{text:🔤 Text (target_lang)}}">🔎</a>
+{{/❓ New word (target_lang)}}
+
+{{#🗣️ Pronunciation}}
+	({{text:🗣️ Pronunciation}})
+{{/🗣️ Pronunciation}}
+=
+{{🔄 Translation (your_lang)}}
+
+
+{{#❓ New word (target_lang)}}
+	{{tts target_lang voices=your_voices:❓ New word (target_lang)}}
+{{/❓ New word (target_lang)}}
+

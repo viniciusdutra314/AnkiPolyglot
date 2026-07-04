@@ -15,9 +15,9 @@ const COMMON_LANGUAGES: &[(&str, &str)] = &[
     ("it_IT", "🇮🇹 Italian"),
 ];
 
-const PREVIEW_PHRASE: &str = "Hola, ¿cómo estás?";
-const PREVIEW_WORD: &str = "Hola";
-const PREVIEW_TRANSLATION: &str = "Hello, how are you?";
+const PREVIEW_PHRASE: &str = "Io sono un ragazzo";
+const PREVIEW_WORD: &str = "ragazzo";
+const PREVIEW_TRANSLATION: &str = "young man";
 
 fn is_valid_iso_code(code: &str) -> bool {
     ISO_REGEX.is_match(code)
@@ -29,9 +29,8 @@ fn random_id() -> i64 {
 
 #[component]
 fn App() -> impl IntoView {
-    let (name, set_name) = signal(String::from("CardMaker"));
     let (your_lang, set_your_lang) = signal(String::from("en_US"));
-    let (target_lang, set_target_lang) = signal(String::from("es_ES"));
+    let (target_lang, set_target_lang) = signal(String::from("it_IT"));
     let (highlight_color, set_highlight_color) = signal(String::from("#ff0000"));
     let (custom_your_lang, set_custom_your_lang) = signal(false);
     let (custom_target_lang, set_custom_target_lang) = signal(false);
@@ -75,7 +74,7 @@ fn App() -> impl IntoView {
             return;
         }
 
-        let current_name = name.get();
+        let current_name = "dummy_name";
         let current_highlight = highlight_color.get();
 
         let model_id = random_id();
@@ -173,10 +172,6 @@ fn App() -> impl IntoView {
                         <h3>"A Language Learning template for " <span style="color: #27a1ed">"Anki"</span></h3>
                     </div>
 
-                    <label class="input-group">
-                        "TEMPLATE NAME"
-                        <input type="text" class="text-input" prop:value=name on:input=move |ev| set_name.set(event_target_value(&ev)) />
-                    </label>
 
                     <div class="input-group">
                         <span>"CARDS TO GENERATE (see examples on the right)"</span>
@@ -316,14 +311,22 @@ fn App() -> impl IntoView {
                 <div class="preview-panel">
                     <div class="preview-header">
                         <h2>"Preview Example"</h2>
-                        <p>"See exactly how cards with (🗣️ Native: en_US and 🎯 Target: en_ES) look in Anki!"</p>
+
+                        <p>"See how an American would use this template for learning italian"</p>
                     </div>
 
 
                     {move || enable_passive.get().then(|| {
                         view! {
                             <div class="card-container">
-                                <div class="card-label color-passive">"📖 Passive Card"</div>
+                                <div style="display: flex; align-items: baseline; gap: 8px;">
+                                    <div class="card-label color-passive">
+                                        "📖 Passive Card"
+                                    </div>
+                                    <span style="font-size: 0.7em; opacity: 0.8;">
+                                        "(passively consuming italian)"
+                                    </span>
+                                </div>
                                 <div class="card-face">
                                     <div class="face-label">"FRONT"</div>
                                     <p class="face-content" inner_html=render_front_preview />
@@ -334,7 +337,7 @@ fn App() -> impl IntoView {
                                         <span style:color=move || highlight_color.get() class="word-highlight">
                                             {PREVIEW_WORD}
                                         </span>
-                                        " — " {PREVIEW_TRANSLATION}
+                                        " = " {PREVIEW_TRANSLATION}
                                     </div>
                                 </div>
                             </div>
@@ -344,7 +347,14 @@ fn App() -> impl IntoView {
                     {move || enable_active.get().then(|| {
                         view! {
                             <div class="card-container">
-                                <div class="card-label color-active">"🗣️ Active Card"</div>
+                                 <div style="display: flex; align-items: baseline; gap: 8px;">
+                                    <div class="card-label color-active">"🗣️ Active Card"</div>
+                                    <span style="font-size: 0.7em; opacity: 0.8;">
+                                        "(actively producing italian)"
+                                    </span>
+                                 </div>
+
+
                                 <div class="card-face">
                                     <div class="face-label">"FRONT"</div>
                                     <p class="face-content">{PREVIEW_TRANSLATION}</p>
@@ -360,23 +370,29 @@ fn App() -> impl IntoView {
                     {move || enable_writing.get().then(|| {
                         view! {
                             <div class="card-container">
-                                <div class="card-label color-writing">"✍️ Writing Card"</div>
+                                <div style="display: flex; align-items: baseline; gap: 8px;">
+                                    <div class="card-label color-writing">"✍️ Writing Card"</div>
+                                    <span style="font-size: 0.7em; opacity: 0.8;">
+                                        "(improving spelling and active recall)"
+                                    </span>
+                                </div>
                                 <div class="card-face">
                                     <div class="face-label">"FRONT"</div>
                                     <p class="face-content">{PREVIEW_TRANSLATION}</p>
                                     <div class="text-center">
-                                        <div class="type-box">"type answer here..."</div>
+                                        <div class="type-box">"ragazoo"</div>
                                     </div>
                                 </div>
                                 <div class="card-face">
                                     <div class="face-label">"BACK"</div>
                                     <div class="text-center margin-bottom-8">
                                         <div class="correct-answer">
-                                            {PREVIEW_PHRASE}
+                                            <span style="color: #00ff00">"ragaz"</span>
+                                            <span style="color: #ff0000">"z"</span>
+                                            <span style="color: #00ff00">"o"</span>
+
                                         </div>
                                     </div>
-                                    <hr class="dashed-line" />
-                                    <p class="face-content" inner_html=render_front_preview />
                                 </div>
                             </div>
                         }

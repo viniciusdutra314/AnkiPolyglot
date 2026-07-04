@@ -4,5 +4,19 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-genanki-rs = "0.4.0"
-rand = "0.10.2"
+genanki-rs-rev = {git="https://github.com/viniciusdutra314/genanki-wasm"}
+getrandom = {version="0.4.3",features=["wasm_js"]}
+js-sys = "0.3.103"
+leptos = { version = "0.8.20", features = ["csr"] }
+regex = { version = "1.12.4", default-features = false }
+wasm-bindgen = "0.2.126"
+web-sys = {version="0.3.103",
+features=[
+    "Blob",
+    "BlobPropertyBag",
+    "Url",
+    "Window",
+    "Document",
+    "HtmlAnchorElement",
+]
+}

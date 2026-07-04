@@ -1,78 +1,392 @@
-use genanki_rs::{Deck, Error, Field, Model, Note, Package, Template};
-use rand::random_range;
+use genanki_rs_rev::{Deck, Field, Model, Note, Template};
+use leptos::prelude::*;
 
-fn random_id() -> i64 {
-    random_range(1..1_000_000_000)
+static ISO_REGEX: std::sync::LazyLock<regex::Regex> =
+    std::sync::LazyLock::new(|| regex::Regex::new(r"^[a-z]{2,3}([_-][A-Z0-9]{2,3})?$").unwrap());
+
+const COMMON_LANGUAGES: &[(&str, &str)] = &[
+    ("en_US", "🇺🇸 English (US)"),
+    ("pt_BR", "🇧🇷 Portuguese (Brazil)"),
+    ("es_ES", "🇪🇸 Spanish (Spain)"),
+    ("fr_FR", "🇫🇷 French (France)"),
+    ("de_DE", "🇩🇪 German (Germany)"),
+    ("ja_JP", "🇯🇵 Japanese"),
+    ("zh_CN", "🇨🇳 Chinese (Simplified)"),
+    ("it_IT", "🇮🇹 Italian"),
+];
+
+const PREVIEW_PHRASE: &str = "Hola, ¿cómo estás?";
+const PREVIEW_WORD: &str = "Hola";
+const PREVIEW_TRANSLATION: &str = "Hello, how are you?";
+
+fn is_valid_iso_code(code: &str) -> bool {
+    ISO_REGEX.is_match(code)
 }
 
-fn main() -> Result<(), Error> {
-    let name = "CardMaker";
-    let your_lang = "pt_BR";
-    let target_lang = "en_US";
-    let highlight_color = "red";
-    let model_id = random_id();
-    let deck_id = random_id();
-    let fields = vec![
-        Field::new(&format!("🔤 Text ({target_lang})")),
-        Field::new(&format!("🔄 Translation ({your_lang})")),
-        Field::new(&format!("❓ New word ({target_lang})")),
-        Field::new("🗣️ Pronunciation"),
-    ];
+fn random_id() -> i64 {
+    getrandom::u64().unwrap() as i64
+}
 
-    let activate_template = Template::new("Activate")
-        .qfmt(
-            &include_str!("../cardtypes/Active/Front.html")
-                .replace("target_lang", target_lang)
-                .replace("your_lang", your_lang)
-                .replace("highlight_color", highlight_color),
-        )
-        .afmt(
-            &include_str!("../cardtypes/Active/Back.html")
-                .replace("target_lang", target_lang)
-                .replace("your_lang", your_lang)
-                .replace("highlight_color", highlight_color),
+#[component]
+fn App() -> impl IntoView {
+    let (name, set_name) = signal(String::from("CardMaker"));
+    let (your_lang, set_your_lang) = signal(String::from("en_US"));
+    let (target_lang, set_target_lang) = signal(String::from("es_ES"));
+    let (highlight_color, set_highlight_color) = signal(String::from("#ff0000"));
+    let (custom_your_lang, set_custom_your_lang) = signal(false);
+    let (custom_target_lang, set_custom_target_lang) = signal(false);
+    let (enable_active, set_enable_active) = signal(true);
+    let (enable_passive, set_enable_passive) = signal(true);
+    let (enable_writing, set_enable_writing) = signal(true);
+
+    let (status_msg, set_status_msg) = signal(Option::<(String, bool)>::None);
+
+    let generate_deck = move |_| {
+        if !enable_active.get() && !enable_passive.get() && !enable_writing.get() {
+            set_status_msg.set(Some((
+                "Please select at least one card type to generate.".to_string(),
+                true,
+            )));
+            return;
+        }
+
+        let current_your_lang = your_lang.get();
+        let current_target_lang = target_lang.get();
+
+        if !is_valid_iso_code(&current_your_lang) {
+            set_status_msg.set(Some((
+                format!(
+                    "Invalid native language code: '{}'. Use formats like 'en' or 'en_US'.",
+                    current_your_lang
+                ),
+                true,
+            )));
+            return;
+        }
+
+        if !is_valid_iso_code(&current_target_lang) {
+            set_status_msg.set(Some((
+                format!(
+                    "Invalid target language code: '{}'. Use formats like 'es' or 'es_ES'.",
+                    current_target_lang
+                ),
+                true,
+            )));
+            return;
+        }
+
+        let current_name = name.get();
+        let current_highlight = highlight_color.get();
+
+        let model_id = random_id();
+        let deck_id = random_id();
+
+        let fields = vec![
+            Field::new(&format!("🔤 Text ({current_target_lang})")),
+            Field::new(&format!("🔄 Translation ({current_your_lang})")),
+            Field::new(&format!("❓ New word ({current_target_lang})")),
+            Field::new("🗣️ Pronunciation"),
+        ];
+
+        let mut templates = Vec::new();
+
+        let mut add_template = |name: &'static str| {
+            let (front_html, back_html) = match name {
+                "Active" => (
+                    include_str!("../cardtypes/Active/Front.html"),
+                    include_str!("../cardtypes/Active/Back.html"),
+                ),
+                "Passive" => (
+                    include_str!("../cardtypes/Passive/Front.html"),
+                    include_str!("../cardtypes/Passive/Back.html"),
+                ),
+                "Writing" => (
+                    include_str!("../cardtypes/Writing/Front.html"),
+                    include_str!("../cardtypes/Writing/Back.html"),
+                ),
+                _ => return,
+            };
+            let qfmt_processed = front_html
+                .replace("target_lang", &current_target_lang)
+                .replace("your_lang", &current_your_lang)
+                .replace("highlight_color", &current_highlight);
+            let afmt_processed = back_html
+                .replace("target_lang", &current_target_lang)
+                .replace("your_lang", &current_your_lang)
+                .replace("highlight_color", &current_highlight);
+            templates.push(
+                Template::new(name)
+                    .qfmt(&qfmt_processed)
+                    .afmt(&afmt_processed),
+            );
+        };
+        if enable_passive.get() {
+            add_template("Passive");
+        }
+        if enable_active.get() {
+            add_template("Activate");
+        }
+        if enable_writing.get() {
+            add_template("Writing");
+        }
+
+        let model = Model::new(model_id, &current_name, fields, templates);
+        let mut deck = Deck::new(deck_id, &current_name, "");
+
+        deck.add_note(
+            Note::new(
+                model,
+                vec![
+                    &PREVIEW_PHRASE,
+                    &PREVIEW_TRANSLATION,
+                    &PREVIEW_WORD,
+                    "🗣️ Pronunciation",
+                ],
+            )
+            .unwrap(),
         );
 
-    let passive_template = Template::new("Passive")
-        .qfmt(
-            &include_str!("../cardtypes/Passive/Front.html")
-                .replace("target_lang", target_lang)
-                .replace("your_lang", your_lang)
-                .replace("highlight_color", highlight_color),
-        )
-        .afmt(
-            &include_str!("../cardtypes/Passive/Back.html")
-                .replace("target_lang", target_lang)
-                .replace("your_lang", your_lang)
-                .replace("highlight_color", highlight_color),
-        );
+        set_status_msg.set(Some((
+            format!("Deck '{}' generated successfully!", current_name),
+            false,
+        )));
+    };
 
-    let writing_template = Template::new("Writing")
-        .qfmt(
-            &include_str!("../cardtypes/Writing/Front.html")
-                .replace("target_lang", target_lang)
-                .replace("your_lang", your_lang)
-                .replace("highlight_color", highlight_color),
-        )
-        .afmt(
-            &include_str!("../cardtypes/Writing/Back.html")
-                .replace("target_lang", target_lang)
-                .replace("your_lang", your_lang)
-                .replace("highlight_color", highlight_color),
-        );
+    let render_front_preview = move || {
+        let color = highlight_color.get();
+        let phrase = PREVIEW_PHRASE;
+        let word = PREVIEW_WORD;
 
-    let model = Model::new(
-        model_id,
-        &name,
-        fields,
-        vec![activate_template, passive_template, writing_template],
-    );
-    let mut deck = Deck::new(deck_id, name, "");
-    deck.add_note(Note::new(
-        model,
-        vec!["Hello world", "Olá mundo", "World", "🗣️ Pronunciation"],
-    )?);
-    let mut package = Package::new(vec![deck], vec![])?;
-    package.write_to_file("output.apkg")?;
-    Ok(())
+        if phrase.contains(&word) && !word.is_empty() {
+            phrase.replace(&word, &format!("<span style='color: {}; font-weight: bold; text-decoration: underline;'>{}</span>", color, word))
+        } else {
+            phrase.to_string()
+        }
+    };
+
+    view! {
+        <div class="app-container">
+            <div class="content-wrapper">
+                <div class="config-panel">
+                    <div class="panel-header">
+                        <img src="anki-icon.svg" alt="Anki Icon" width=100 height=100 />
+                        <h3>"A Language Learning template for " <span style="color: #27a1ed">"Anki"</span></h3>
+                    </div>
+
+                    <label class="input-group">
+                        "TEMPLATE NAME"
+                        <input type="text" class="text-input" prop:value=name on:input=move |ev| set_name.set(event_target_value(&ev)) />
+                    </label>
+
+                    <div class="input-group">
+                        <span>"CARDS TO GENERATE (see examples on the right)"</span>
+                        <div class="checkbox-group">
+                            <label><input type="checkbox" prop:checked=move || enable_passive.get() on:change=move |_| { set_enable_passive.set(!enable_passive.get()); set_status_msg.set(None); } /> "Passive"</label>
+                            <label><input type="checkbox" prop:checked=move || enable_active.get() on:change=move |_| { set_enable_active.set(!enable_active.get()); set_status_msg.set(None); } /> "Active"</label>
+                            <label><input type="checkbox" prop:checked=move || enable_writing.get() on:change=move |_| { set_enable_writing.set(!enable_writing.get()); set_status_msg.set(None); } /> "Writing"</label>
+                        </div>
+                    </div>
+
+                    <label class="input-group">
+                        <div class="space-between">
+                            <span>"YOUR NATIVE LANGUAGE (mother tongue)"</span>
+                        </div>
+                        <select
+                            class="text-input"
+                            style:display=move || if custom_your_lang.get() { "none" } else { "block" }
+                            prop:value=your_lang
+                            on:change=move |ev| {
+                                let val = event_target_value(&ev);
+                                if val == "custom" {
+                                    set_custom_your_lang.set(true);
+                                    set_your_lang.set(String::new());
+                                } else {
+                                    set_your_lang.set(val);
+                                }
+                                set_status_msg.set(None);
+                            }
+                        >
+                            {COMMON_LANGUAGES.iter().map(|(iso, name)| {
+                                view! { <option value=*iso>{*name}</option> }
+                            }).collect::<Vec<_>>()}
+
+                            <option disabled> "──────────" </option>
+                            <option value="custom">"Not in list? Click here"</option>
+                        </select>
+
+
+                        <div style:display=move || if custom_your_lang.get() { "flex" } else { "none" } style="gap: 8px;">
+                            <input
+                                type="text"
+                                placeholder="(example: en_US) 4-letter ISO code"
+                                class="text-input"
+                                style="flex: 1;"
+                                prop:value=your_lang
+                                on:input=move |ev| {
+                                    set_your_lang.set(event_target_value(&ev));
+                                    set_status_msg.set(None);
+                                }
+                            />
+                            <button
+                                type="button"
+                                class="toggle-btn"
+                                style="padding: 0 12px; cursor: pointer;"
+                                on:click=move |_| {
+                                    set_custom_your_lang.set(false);
+                                    set_your_lang.set("en_US".to_string());
+                                }
+                            >
+                                "❌ Cancel"
+                            </button>
+                        </div>
+                    </label>
+
+
+                    <label class="input-group">
+                        <div class="space-between">
+                            <span>"TARGET LANGUAGE (language to learn)"</span>
+                        </div>
+                        <select
+                            class="text-input"
+                            style:display=move || if custom_target_lang.get() { "none" } else { "block" }
+                            prop:value=target_lang
+                            on:change=move |ev| {
+                                let val = event_target_value(&ev);
+                                if val == "custom" {
+                                    set_custom_target_lang.set(true);
+                                    set_target_lang.set(String::new());
+                                } else {
+                                    set_target_lang.set(val);
+                                }
+                                set_status_msg.set(None);
+                            }
+                        >
+                            {COMMON_LANGUAGES.iter().map(|(iso, name)| {
+                                view! { <option value=*iso>{*name}</option> }
+                            }).collect::<Vec<_>>()}
+
+                            <option disabled> "──────────" </option>
+                            <option value="custom">"Not in list? Click here"</option>
+                        </select>
+
+                        <div style:display=move || if custom_target_lang.get() { "flex" } else { "none" } style="gap: 8px;">
+                            <input
+                                type="text"
+                                placeholder="(example: es_ES) 4-letter ISO code"
+                                class="text-input"
+                                style="flex: 1;"
+                                prop:value=target_lang
+                                on:input=move |ev| {
+                                    set_target_lang.set(event_target_value(&ev));
+                                    set_status_msg.set(None);
+                                }
+                            />
+                            <button
+                                type="button"
+                                class="toggle-btn"
+                                style="padding: 0 12px; cursor: pointer;"
+                                on:click=move |_| {
+                                    set_custom_target_lang.set(false);
+                                    set_target_lang.set("es_ES".to_string());
+                                }
+                            >
+                                "❌ Cancel"
+                            </button>
+                        </div>
+                    </label>
+
+                    <label class="input-group">
+                        "HIGHLIGHT COLOR (use to highlight new words)"
+                        <input type="color" class="color-picker" prop:value=highlight_color on:input=move |ev| set_highlight_color.set(event_target_value(&ev)) />
+                    </label>
+
+                    {move || status_msg.get().map(|(msg, is_error)| {
+                        let status_class = if is_error { "status-error" } else { "status-success" };
+                        view! {
+                            <div class=format!("status-banner {}", status_class)>
+                                {if is_error { "⚠️ " } else { "✅ " }} {msg}
+                            </div>
+                        }
+                    })}
+
+                    <button class="primary-btn" on:click=generate_deck>
+                        "Download .apkg file"
+                    </button>
+                </div>
+                <div class="preview-panel">
+                    <div class="preview-header">
+                        <h2>"Preview Example"</h2>
+                        <p>"See exactly how cards with (🗣️ Native: en_US and 🎯 Target: en_ES) look in Anki!"</p>
+                    </div>
+
+
+                    {move || enable_passive.get().then(|| {
+                        view! {
+                            <div class="card-container">
+                                <div class="card-label color-passive">"📖 Passive Card"</div>
+                                <div class="card-face">
+                                    <div class="face-label">"FRONT"</div>
+                                    <p class="face-content" inner_html=render_front_preview />
+                                </div>
+                                <div class="card-face">
+                                    <div class="face-label">"BACK"</div>
+                                    <div class="face-content">
+                                        <span style:color=move || highlight_color.get() class="word-highlight">
+                                            {PREVIEW_WORD}
+                                        </span>
+                                        " — " {PREVIEW_TRANSLATION}
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    })}
+
+                    {move || enable_active.get().then(|| {
+                        view! {
+                            <div class="card-container">
+                                <div class="card-label color-active">"🗣️ Active Card"</div>
+                                <div class="card-face">
+                                    <div class="face-label">"FRONT"</div>
+                                    <p class="face-content">{PREVIEW_TRANSLATION}</p>
+                                </div>
+                                <div class="card-face">
+                                    <div class="face-label">"BACK"</div>
+                                    <p class="face-content" inner_html=render_front_preview />
+                                </div>
+                            </div>
+                        }
+                    })}
+
+                    {move || enable_writing.get().then(|| {
+                        view! {
+                            <div class="card-container">
+                                <div class="card-label color-writing">"✍️ Writing Card"</div>
+                                <div class="card-face">
+                                    <div class="face-label">"FRONT"</div>
+                                    <p class="face-content">{PREVIEW_TRANSLATION}</p>
+                                    <div class="text-center">
+                                        <div class="type-box">"type answer here..."</div>
+                                    </div>
+                                </div>
+                                <div class="card-face">
+                                    <div class="face-label">"BACK"</div>
+                                    <div class="text-center margin-bottom-8">
+                                        <div class="correct-answer">
+                                            {PREVIEW_PHRASE}
+                                        </div>
+                                    </div>
+                                    <hr class="dashed-line" />
+                                    <p class="face-content" inner_html=render_front_preview />
+                                </div>
+                            </div>
+                        }
+                    })}
+                </div>
+            </div>
+        </div>
+    }
+}
+
+fn main() {
+    leptos::mount::mount_to_body(App)
 }

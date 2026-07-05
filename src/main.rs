@@ -64,20 +64,11 @@ fn App() -> impl IntoView {
     let (enable_writing, set_enable_writing) = signal(true);
 
     let (status_msg, set_status_msg) = signal(Option::<(String, bool)>::None);
-    let audio_ref_front = NodeRef::<leptos::html::Audio>::new();
-    let audio_ref_back = NodeRef::<leptos::html::Audio>::new();
 
-    let play_audio_front = move |_| {
-        if let Some(audio) = audio_ref_front.get() {
-            let _ = audio.play();
-        }
-    };
-
-    let play_audio_back = move |_| {
-        if let Some(audio) = audio_ref_back.get() {
-            let _ = audio.play();
-        }
-    };
+    let passive_audio_front = NodeRef::<leptos::html::Audio>::new();
+    let passive_audio_back = NodeRef::<leptos::html::Audio>::new();
+    let active_audio_front = NodeRef::<leptos::html::Audio>::new();
+    let active_audio_back = NodeRef::<leptos::html::Audio>::new();
 
     let generate_deck = move |_| {
         if !enable_active.get() && !enable_passive.get() && !enable_writing.get() {
@@ -374,7 +365,11 @@ fn App() -> impl IntoView {
                                     <div class="audio-box">
                                         <p class="face-content" inner_html=render_front_preview style="margin: 0;" />
                                         <button
-                                            on:click=play_audio_front
+                                            on:click=move |_| {
+                                                if let Some(audio) = passive_audio_front.get() {
+                                                    let _ = audio.play();
+                                                }
+                                            }
                                             style="background: transparent; border: none; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center;"
                                             title="Play Audio"
                                         >
@@ -382,7 +377,7 @@ fn App() -> impl IntoView {
                                                 <path d="M8 5v14l11-7z" />
                                             </svg>
                                         </button>
-                                        <audio node_ref=audio_ref_front src="io_sono_un_ragazzo.mp3" style="display: none;"></audio>
+                                        <audio node_ref=passive_audio_front src="io_sono_un_ragazzo.mp3" style="display: none;"></audio>
                                     </div>
                                 </div>
                                 <div class="card-face">
@@ -396,7 +391,11 @@ fn App() -> impl IntoView {
                                         </span>
 
                                         <button
-                                            on:click=play_audio_back
+                                            on:click=move |_| {
+                                                if let Some(audio) = passive_audio_back.get() {
+                                                    let _ = audio.play();
+                                                }
+                                            }
                                             style="background: transparent; border: none; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center;"
                                             title="Play Audio"
                                         >
@@ -404,7 +403,7 @@ fn App() -> impl IntoView {
                                                 <path d="M8 5v14l11-7z" />
                                             </svg>
                                         </button>
-                                        <audio node_ref=audio_ref_back src="ragazzo.mp3" style="display: none;"></audio>
+                                        <audio node_ref=passive_audio_back src="ragazzo.mp3" style="display: none;"></audio>
 
                                     </div>
                                 </div>
@@ -428,7 +427,11 @@ fn App() -> impl IntoView {
                                     <p class="face-content audio-box">{PREVIEW_TRANSLATION}
 
                                     <button
-                                        on:click=play_audio_back
+                                        on:click=move |_| {
+                                            if let Some(audio) = active_audio_front.get() {
+                                                let _ = audio.play();
+                                            }
+                                        }
                                         style="background: transparent; border: none; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center;"
                                         title="Play Audio"
                                     >
@@ -436,7 +439,7 @@ fn App() -> impl IntoView {
                                             <path d="M8 5v14l11-7z" />
                                         </svg>
                                     </button>
-                                    <audio node_ref=audio_ref_back src="young_man.mp3" style="display: none;"></audio>
+                                    <audio node_ref=active_audio_front src="young_man.mp3" style="display: none;"></audio>
 
 
                                     </p>
@@ -446,9 +449,13 @@ fn App() -> impl IntoView {
                                     <div class="face-label">"BACK"</div>
                                     <div class="audio-box">
                                         <p class="face-content" inner_html=render_front_preview />
-                                        
+
                                         <button
-                                            on:click=play_audio_back
+                                            on:click=move |_| {
+                                                if let Some(audio) = active_audio_back.get() {
+                                                    let _ = audio.play();
+                                                }
+                                            }
                                             style="background: transparent; border: none; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center;"
                                             title="Play Audio"
                                         >
@@ -456,7 +463,7 @@ fn App() -> impl IntoView {
                                                 <path d="M8 5v14l11-7z" />
                                             </svg>
                                         </button>
-                                        <audio node_ref=audio_ref_back src="ragazzo.mp3" style="display: none;"></audio>
+                                        <audio node_ref=active_audio_back src="io_sono_un_ragazzo.mp3" style="display: none;"></audio>
 
                                     </div>
                                 </div>

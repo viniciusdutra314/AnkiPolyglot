@@ -23,11 +23,8 @@ version = "0.1.0"
 dependencies = [
  "genanki-rs-rev",
  "getrandom 0.4.3",
- "js-sys",
  "leptos",
- "regex",
  "wasm-bindgen",
- "web-sys",
 ]
 
 [[package]]

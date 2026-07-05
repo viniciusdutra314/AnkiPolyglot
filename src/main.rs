@@ -1,9 +1,6 @@
 use genanki_rs_rev::{Deck, Field, Model, Note, Template};
 use leptos::prelude::*;
 
-static ISO_REGEX: std::sync::LazyLock<regex::Regex> =
-    std::sync::LazyLock::new(|| regex::Regex::new(r"^[a-z]{2,3}([_-][A-Z0-9]{2,3})?$").unwrap());
-
 const COMMON_LANGUAGES: &[(&str, &str)] = &[
     ("en_US", "🇺🇸 English (US)"),
     ("pt_BR", "🇧🇷 Portuguese (Brazil)"),
@@ -20,7 +17,25 @@ const PREVIEW_WORD: &str = "ragazzo";
 const PREVIEW_TRANSLATION: &str = "young man";
 
 fn is_valid_iso_code(code: &str) -> bool {
-    ISO_REGEX.is_match(code)
+    let mut parts = code.split(|c| c == '_' || c == '-');
+    if let Some(lang) = parts.next() {
+        if lang.len() < 2 || lang.len() > 3 || !lang.chars().all(|c| c.is_ascii_lowercase()) {
+            return false;
+        }
+    } else {
+        return false;
+    }
+    if let Some(region) = parts.next() {
+        if region.len() < 2
+            || region.len() > 3
+            || !region
+                .chars()
+                .all(|c| c.is_ascii_uppercase() || c.is_ascii_digit())
+        {
+            return false;
+        }
+    }
+    parts.next().is_none()
 }
 
 fn random_id() -> i64 {

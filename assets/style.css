@@ -31,17 +31,32 @@ body {
     max-width: 950px;
     margin: 0 auto;
     justify-content: center;
-    transform: scale(var(--scale-factor));
-    transform-origin: top center;
+}
+.audio-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.dynamic-direction::after {
+    content: "CARDS TO GENERATE (see examples on the right)";
+}
+
+@media (max-width: 899px) {
+    .dynamic-direction::after {
+        content: "CARDS TO GENERATE (see examples below)";
+    }
 }
 
 @media (min-width: 900px) {
     .content-wrapper {
         grid-template-columns: minmax(320px, 430px) minmax(320px, 430px);
         align-items: start;
+        transform: scale(var(--scale-factor));
+        transform-origin: top center;
     }
 }
-
 .config-panel {
     display: flex;
     flex-direction: column;

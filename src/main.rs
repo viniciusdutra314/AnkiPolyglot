@@ -2,14 +2,24 @@ use genanki_rs_rev::{Deck, Field, Model, Note, Template};
 use leptos::prelude::*;
 
 const COMMON_LANGUAGES: &[(&str, &str)] = &[
+    ("ar_SA", "🇸🇦 Arabic"),
+    ("zh_CN", "🇨🇳 Chinese (Simplified)"),
+    ("zh_TW", "🇹🇼 Chinese (Traditional)"),
+    ("nl_NL", "🇳🇱 Dutch"),
+    ("en_AU", "🇦🇺 English (Australia)"),
+    ("en_GB", "🇬🇧 English (UK)"),
     ("en_US", "🇺🇸 English (US)"),
-    ("pt_BR", "🇧🇷 Portuguese (Brazil)"),
-    ("es_ES", "🇪🇸 Spanish (Spain)"),
     ("fr_FR", "🇫🇷 French (France)"),
     ("de_DE", "🇩🇪 German (Germany)"),
-    ("ja_JP", "🇯🇵 Japanese"),
-    ("zh_CN", "🇨🇳 Chinese (Simplified)"),
     ("it_IT", "🇮🇹 Italian"),
+    ("ja_JP", "🇯🇵 Japanese"),
+    ("ko_KR", "🇰🇷 Korean"),
+    ("pt_BR", "🇧🇷 Portuguese (Brazil)"),
+    ("pt_PT", "🇵🇹 Portuguese (Portugal)"),
+    ("ru_RU", "🇷🇺 Russian"),
+    ("es_AR", "🇦🇷 Spanish (Argentina)"),
+    ("es_MX", "🇲🇽 Spanish (Mexico)"),
+    ("es_ES", "🇪🇸 Spanish (Spain)"),
 ];
 
 const PREVIEW_PHRASE: &str = "Io sono un ragazzo";
@@ -54,6 +64,20 @@ fn App() -> impl IntoView {
     let (enable_writing, set_enable_writing) = signal(true);
 
     let (status_msg, set_status_msg) = signal(Option::<(String, bool)>::None);
+    let audio_ref_front = NodeRef::<leptos::html::Audio>::new();
+    let audio_ref_back = NodeRef::<leptos::html::Audio>::new();
+
+    let play_audio_front = move |_| {
+        if let Some(audio) = audio_ref_front.get() {
+            let _ = audio.play();
+        }
+    };
+
+    let play_audio_back = move |_| {
+        if let Some(audio) = audio_ref_back.get() {
+            let _ = audio.play();
+        }
+    };
 
     let generate_deck = move |_| {
         if !enable_active.get() && !enable_passive.get() && !enable_writing.get() {
@@ -184,12 +208,15 @@ fn App() -> impl IntoView {
                 <div class="config-panel">
                     <div class="panel-header">
                         <img src="anki-icon.svg" alt="Anki Icon" width=100 height=100 />
-                        <h3>"A Language Learning template for " <span style="color: #27a1ed">"Anki"</span></h3>
+                        <div style="flex-direction: column">
+                            <h2> <span style="color: #27a1ed"> "Anki" </span>"Polyglot"</h2>
+                            <h4>"A language learning template" <br /> "(with TTS 🗣️)"</h4>
+                            </div>
                     </div>
 
 
                     <div class="input-group">
-                        <span>"CARDS TO GENERATE (see examples on the right)"</span>
+                        <span class="dynamic-direction"></span>
                         <div class="checkbox-group">
                             <label><input type="checkbox" prop:checked=move || enable_passive.get() on:change=move |_| { set_enable_passive.set(!enable_passive.get()); set_status_msg.set(None); } /> "Passive"</label>
                             <label><input type="checkbox" prop:checked=move || enable_active.get() on:change=move |_| { set_enable_active.set(!enable_active.get()); set_status_msg.set(None); } /> "Active"</label>
@@ -344,15 +371,41 @@ fn App() -> impl IntoView {
                                 </div>
                                 <div class="card-face">
                                     <div class="face-label">"FRONT"</div>
-                                    <p class="face-content" inner_html=render_front_preview />
+                                    <div class="audio-box">
+                                        <p class="face-content" inner_html=render_front_preview style="margin: 0;" />
+                                        <button
+                                            on:click=play_audio_front
+                                            style="background: transparent; border: none; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center;"
+                                            title="Play Audio"
+                                        >
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="#ffffff" xmlns="http://www.w3.org/2000/svg">
+                                                <path d="M8 5v14l11-7z" />
+                                            </svg>
+                                        </button>
+                                        <audio node_ref=audio_ref_front src="io_sono_un_ragazzo.mp3" style="display: none;"></audio>
+                                    </div>
                                 </div>
                                 <div class="card-face">
                                     <div class="face-label">"BACK"</div>
-                                    <div class="face-content">
-                                        <span style:color=move || highlight_color.get() class="word-highlight">
-                                            {PREVIEW_WORD}
+                                    <div class="face-content audio-box">
+                                        <span>
+                                            <span style:color=move || highlight_color.get() class="word-highlight">
+                                                {PREVIEW_WORD}
+                                            </span>
+                                            " = " {PREVIEW_TRANSLATION}
                                         </span>
-                                        " = " {PREVIEW_TRANSLATION}
+
+                                        <button
+                                            on:click=play_audio_back
+                                            style="background: transparent; border: none; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center;"
+                                            title="Play Audio"
+                                        >
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="#ffffff" xmlns="http://www.w3.org/2000/svg">
+                                                <path d="M8 5v14l11-7z" />
+                                            </svg>
+                                        </button>
+                                        <audio node_ref=audio_ref_back src="ragazzo.mp3" style="display: none;"></audio>
+
                                     </div>
                                 </div>
                             </div>
@@ -372,11 +425,40 @@ fn App() -> impl IntoView {
 
                                 <div class="card-face">
                                     <div class="face-label">"FRONT"</div>
-                                    <p class="face-content">{PREVIEW_TRANSLATION}</p>
+                                    <p class="face-content audio-box">{PREVIEW_TRANSLATION}
+
+                                    <button
+                                        on:click=play_audio_back
+                                        style="background: transparent; border: none; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center;"
+                                        title="Play Audio"
+                                    >
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="#ffffff" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M8 5v14l11-7z" />
+                                        </svg>
+                                    </button>
+                                    <audio node_ref=audio_ref_back src="young_man.mp3" style="display: none;"></audio>
+
+
+                                    </p>
+
                                 </div>
                                 <div class="card-face">
                                     <div class="face-label">"BACK"</div>
-                                    <p class="face-content" inner_html=render_front_preview />
+                                    <div class="audio-box">
+                                        <p class="face-content" inner_html=render_front_preview />
+                                        
+                                        <button
+                                            on:click=play_audio_back
+                                            style="background: transparent; border: none; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center;"
+                                            title="Play Audio"
+                                        >
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="#ffffff" xmlns="http://www.w3.org/2000/svg">
+                                                <path d="M8 5v14l11-7z" />
+                                            </svg>
+                                        </button>
+                                        <audio node_ref=audio_ref_back src="ragazzo.mp3" style="display: none;"></audio>
+
+                                    </div>
                                 </div>
                             </div>
                         }
@@ -412,9 +494,26 @@ fn App() -> impl IntoView {
                             </div>
                         }
                     })}
+                    <p>
+                        "This website is powered by the "
+                        <a
+                            href="https://github.com/viniciusdutra314/genanki-wasm"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style="color: #27a1ed; text-decoration: underline;"
+                        >
+                            "genanki-wasm"
+                        </a>
+                        " library"
+                    </p>
                 </div>
             </div>
         </div>
+        <footer>
+            <div style="display: flex; align-items: center; justify-content: center; color: #ffffff; gap: 16px;">
+
+            </div>
+        </footer>
     }
 }
 

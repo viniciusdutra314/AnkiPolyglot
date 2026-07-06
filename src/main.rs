@@ -52,7 +52,7 @@ fn is_valid_iso_code(code: &str) -> bool {
 }
 
 fn random_id() -> i64 {
-    getrandom::u64().unwrap() as i64
+    (js_sys::Math::random() * (1_000_000_000_f64)) as i64
 }
 
 fn download_bytes(bytes: &[u8], filename: &str, mime_type: &str) -> Result<(), JsValue> {

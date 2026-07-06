@@ -136,7 +136,7 @@ fn App() -> impl IntoView {
         }
 
         let current_name = format!(
-            "AnkiPolyglot({}-{})",
+            "AnkiPolyglot ({}-{})",
             current_your_lang, current_target_lang
         );
         let current_highlight = highlight_color.get();
@@ -204,7 +204,11 @@ fn App() -> impl IntoView {
             }
             ",
         );
-        let mut deck = Deck::new(deck_id, &current_name, "");
+        let mut deck = Deck::new(
+            deck_id,
+            &format!("{} TEST THE VOICES AND DELETE ME", current_name),
+            "",
+        );
 
         deck.add_note(
             Note::new(

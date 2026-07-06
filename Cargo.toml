@@ -8,17 +8,18 @@ genanki-rs-rev = {git="https://github.com/viniciusdutra314/genanki-wasm"}
 getrandom = {version="0.4.3",features=["wasm_js"]}
 leptos = { version = "0.8.20", features = ["csr"] }
 wasm-bindgen = "0.2.126"
-#js-sys = "0.3.103"
-# web-sys = {version="0.3.103",
-# features=[
-#     "Blob",
-#     "BlobPropertyBag",
-#     "Url",
-#     "Window",
-#     "Document",
-#     "HtmlAnchorElement",
-# ]
-# }
+js-sys = "0.3.103"
+web-sys = {version="0.3.103",
+features=[
+    "Blob",
+    "BlobPropertyBag",
+    "Url",
+    "Window",
+    "Document",
+    "HtmlAnchorElement",
+]
+}
+console_error_panic_hook = "0.1.7"
 
 [profile.release]
 opt-level = 'z'

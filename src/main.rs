@@ -1,5 +1,8 @@
-use genanki_rs_rev::{Deck, Field, Model, Note, Template};
+use genanki_rs_rev::{Deck, Field, Model, Note, Package, Template};
+use js_sys::{Array, Uint8Array};
 use leptos::prelude::*;
+use wasm_bindgen::{JsCast, JsValue};
+use web_sys::{Blob, BlobPropertyBag, HtmlAnchorElement, Url, window};
 
 const COMMON_LANGUAGES: &[(&str, &str)] = &[
     ("ar_SA", "🇸🇦 Arabic"),
@@ -50,6 +53,34 @@ fn is_valid_iso_code(code: &str) -> bool {
 
 fn random_id() -> i64 {
     getrandom::u64().unwrap() as i64
+}
+
+fn download_bytes(bytes: &[u8], filename: &str, mime_type: &str) -> Result<(), JsValue> {
+    let uint8_array = Uint8Array::new_with_length(bytes.len() as u32);
+    uint8_array.copy_from(bytes);
+
+    let array = Array::new();
+    array.push(&uint8_array);
+
+    let options = BlobPropertyBag::new();
+    options.set_type(mime_type);
+    let blob = Blob::new_with_u8_array_sequence_and_options(&array, &options)?;
+
+    let url = Url::create_object_url_with_blob(&blob)?;
+    let window = window().ok_or_else(|| JsValue::from_str("No window"))?;
+    let document = window
+        .document()
+        .ok_or_else(|| JsValue::from_str("No document"))?;
+
+    let a = document
+        .create_element("a")?
+        .dyn_into::<HtmlAnchorElement>()?;
+    a.set_href(&url);
+    a.set_download(filename);
+    a.click();
+
+    Url::revoke_object_url(&url)?;
+    Ok(())
 }
 
 #[component]
@@ -104,7 +135,10 @@ fn App() -> impl IntoView {
             return;
         }
 
-        let current_name = "dummy_name";
+        let current_name = format!(
+            "AnkiPolyglot({}-{})",
+            current_your_lang, current_target_lang
+        );
         let current_highlight = highlight_color.get();
 
         let model_id = random_id();
@@ -133,7 +167,7 @@ fn App() -> impl IntoView {
                     include_str!("../cardtypes/Writing/Front.html"),
                     include_str!("../cardtypes/Writing/Back.html"),
                 ),
-                _ => return,
+                _ => panic!("Unknown template: {}", name),
             };
             let qfmt_processed = front_html
                 .replace("target_lang", &current_target_lang)
@@ -153,27 +187,57 @@ fn App() -> impl IntoView {
             add_template("Passive");
         }
         if enable_active.get() {
-            add_template("Activate");
+            add_template("Active");
         }
         if enable_writing.get() {
             add_template("Writing");
         }
 
-        let model = Model::new(model_id, &current_name, fields, templates);
+        let model = Model::new(model_id, &current_name, fields, templates).css(
+            ".card {
+                font-family: arial;
+                font-size: 20px;
+                line-height: 1.5;
+                text-align: center;
+                color: black;
+                background-color: white;
+            }
+            ",
+        );
         let mut deck = Deck::new(deck_id, &current_name, "");
 
         deck.add_note(
             Note::new(
                 model,
                 vec![
-                    &PREVIEW_PHRASE,
-                    &PREVIEW_TRANSLATION,
-                    &PREVIEW_WORD,
-                    "🗣️ Pronunciation",
+                    &format!("Phrase in {}", current_target_lang),
+                    &format!("Translation in {}", current_your_lang),
+                    &format!("New Word in {}", current_target_lang),
+                    "IPA pronunciation",
                 ],
             )
             .unwrap(),
         );
+
+        let package = Package::new(vec![deck], std::collections::HashMap::new()).unwrap();
+        let mut raw_bytes = std::io::Cursor::new(Vec::new());
+        package.write(&mut raw_bytes).unwrap();
+        let final_bytes = raw_bytes.into_inner();
+        let file_name = format!("{}.apkg", current_name);
+        match download_bytes(&final_bytes, &file_name, "application/octet-stream") {
+            Ok(_) => {
+                set_status_msg.set(Some((
+                    format!(
+                        "Deck '{}' generated and downloaded successfully!",
+                        current_name
+                    ),
+                    false,
+                )));
+            }
+            Err(e) => {
+                set_status_msg.set(Some((format!("Error downloading deck: {:?}", e), true)));
+            }
+        }
 
         set_status_msg.set(Some((
             format!("Deck '{}' generated successfully!", current_name),
@@ -201,7 +265,7 @@ fn App() -> impl IntoView {
                         <img src="anki-icon.svg" alt="Anki Icon" width=100 height=100 />
                         <div style="flex-direction: column">
                             <h2> <span style="color: #27a1ed"> "Anki" </span>"Polyglot"</h2>
-                            <h4>"A language learning template" <br /> "(with TTS 🗣️)"</h4>
+                            <h4>"A language learning template" <br /> "(with TTS and IPA 🗣️)"</h4>
                             </div>
                     </div>
 
@@ -340,12 +404,18 @@ fn App() -> impl IntoView {
                     <button class="primary-btn" on:click=generate_deck>
                         "Download .apkg file"
                     </button>
+                    <span style="font-family: monospace;">
+                        {move || format!("A new AnkiPolyglot ({}-{}) example deck and note type will be imported, test it if the voices are working and then", your_lang.get(), target_lang.get())}
+                        <span style="font-family: monospace; color: #ff0000">
+                            " YOU CAN DELETE THE DECK"
+                        </span>
+                    </span>
                 </div>
                 <div class="preview-panel">
                     <div class="preview-header">
                         <h2>"Preview Example"</h2>
 
-                        <p>"See how an American would use this template for learning italian"</p>
+                        <p>"See how an American would use this template for learning Italian"</p>
                     </div>
 
 
@@ -357,7 +427,7 @@ fn App() -> impl IntoView {
                                         "📖 Passive Card"
                                     </div>
                                     <span style="font-size: 0.7em; opacity: 0.8;">
-                                        "(passively consuming italian)"
+                                        "(passively consuming Italian)"
                                     </span>
                                 </div>
                                 <div class="card-face">
@@ -387,7 +457,7 @@ fn App() -> impl IntoView {
                                             <span style:color=move || highlight_color.get() class="word-highlight">
                                                 {PREVIEW_WORD}
                                             </span>
-                                            " = " {PREVIEW_TRANSLATION}
+                                            "(raˈɡat.t͡so) = " {PREVIEW_TRANSLATION}
                                         </span>
 
                                         <button
@@ -417,14 +487,15 @@ fn App() -> impl IntoView {
                                  <div style="display: flex; align-items: baseline; gap: 8px;">
                                     <div class="card-label color-active">"🗣️ Active Card"</div>
                                     <span style="font-size: 0.7em; opacity: 0.8;">
-                                        "(actively producing italian)"
+                                        "(actively producing Italian)"
                                     </span>
                                  </div>
 
 
                                 <div class="card-face">
                                     <div class="face-label">"FRONT"</div>
-                                    <p class="face-content audio-box">{PREVIEW_TRANSLATION}
+                                    <p class="face-content audio-box">
+                                    {PREVIEW_TRANSLATION}
 
                                     <button
                                         on:click=move |_| {
@@ -449,7 +520,7 @@ fn App() -> impl IntoView {
                                     <div class="face-label">"BACK"</div>
                                     <div class="audio-box">
                                         <p class="face-content" inner_html=render_front_preview />
-
+                                        "(raˈɡat.t͡so)"
                                         <button
                                             on:click=move |_| {
                                                 if let Some(audio) = active_audio_back.get() {
@@ -525,5 +596,6 @@ fn App() -> impl IntoView {
 }
 
 fn main() {
+    console_error_panic_hook::set_once();
     leptos::mount::mount_to_body(App)
 }
